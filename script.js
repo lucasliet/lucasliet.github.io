@@ -1,5 +1,6 @@
 getOrFetch('https://api.github.com/users/lucasliet', renderUserPhoto);
 getOrFetch('https://api.github.com/users/lucasliet/repos?sort=updated&per_page=100', renderRepositories);
+renderSearchBox();
 
 function getOrFetch(url, renderFunction) {
   const cachedData = JSON.parse(sessionStorage.getItem(url));
@@ -36,11 +37,11 @@ function getOrFetch(url, renderFunction) {
 }
 
 function renderUserPhoto(user) {
-  const header = document.querySelector('header');
+  const titleAndPhoto = document.querySelector('#title');
 
   const title = document.createElement('h1');
   title.textContent = `${user.name}'s Repositories`;
-  header.appendChild(title);
+  titleAndPhoto.appendChild(title);
 
   const githubUrl = document.createElement('a');
   githubUrl.href = user.html_url;
@@ -50,42 +51,58 @@ function renderUserPhoto(user) {
   userPhoto.alt = user.login;
   userPhoto.href = user.html_url;
   githubUrl.appendChild(userPhoto);
-  header.appendChild(githubUrl);
-
+  titleAndPhoto.appendChild(githubUrl);
 }
 
 function renderRepositories(repositories) {
-  const repositoriesContainer = document.querySelector('main')
+  const repositoriesContainer = document.querySelector('#repositories')
   repositories.forEach(repository => {
-      const repositoryElement = document.createElement('div');
-      repositoryElement.className = 'repository';
+    const repositoryElement = document.createElement('div');
+    repositoryElement.className = 'repository';
 
-      const titleAndLanguage = document.createElement('div');
-      titleAndLanguage.className = 'title';
-      const repositoryName = document.createElement('a');
-      repositoryName.href = repository.html_url;
-      repositoryName.textContent = repository.name;
-      titleAndLanguage.appendChild(repositoryName);
+    const titleAndLanguage = document.createElement('div');
 
-      const langageBadge = document.createElement('span');
-      langageBadge.textContent = repository.language;
-      titleAndLanguage.appendChild(langageBadge);
+    titleAndLanguage.className = 'title';
+    const repositoryName = document.createElement('a');
+    repositoryName.href = repository.html_url;
+    repositoryName.textContent = repository.name;
+    titleAndLanguage.appendChild(repositoryName);
 
-      repositoryElement.appendChild(titleAndLanguage);
+    const langageBadge = document.createElement('span');
+    langageBadge.textContent = repository.language;
+    titleAndLanguage.appendChild(langageBadge);
 
-      const repositoryDescription = document.createElement('p');
-      repositoryDescription.textContent = repository.description;
-      repositoryElement.appendChild(repositoryDescription);
+    repositoryElement.appendChild(titleAndLanguage);
 
-      if (repository.homepage) {
-        const repositoryLink = document.createElement('button');
-        repositoryLink.textContent = 'Go to Homepage';
-        repositoryLink.addEventListener('click', () => {
-          window.location.href = repository.homepage;
-        });
-        repositoryElement.appendChild(repositoryLink);
+    const repositoryDescription = document.createElement('p');
+    repositoryDescription.textContent = repository.description;
+    repositoryElement.appendChild(repositoryDescription);
+
+    if (repository.homepage) {
+      const repositoryLink = document.createElement('button');
+      repositoryLink.textContent = 'Go to Homepage';
+      repositoryLink.addEventListener('click', () => {
+        window.location.href = repository.homepage;
+      });
+      repositoryElement.appendChild(repositoryLink);
+    }
+
+    repositoriesContainer.appendChild(repositoryElement);
+  });
+}
+
+function renderSearchBox() {
+  const filterInput = document.querySelector('#searchbox');
+  filterInput.addEventListener('input', () => {
+    const filterValue = filterInput.value.toLowerCase();
+    const repositories = document.querySelectorAll('.repository');
+    repositories.forEach(repository => {
+      const repositoryName = repository.querySelector('a').textContent.toLowerCase();
+      if (repositoryName.includes(filterValue)) {
+        repository.style.display = 'block';
+      } else {
+        repository.style.display = 'none';
       }
-
-      repositoriesContainer.appendChild(repositoryElement);
     });
+  });
 }
