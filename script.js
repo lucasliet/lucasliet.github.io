@@ -56,9 +56,7 @@ function renderUserPhoto(user) {
 
 function renderRepositories(repositories) {
   const repositoriesContainer = document.querySelector('main')
-  repositories
-    .filter(repository => repository.homepage)
-    .forEach(repository => {
+  repositories.forEach(repository => {
       const repositoryElement = document.createElement('div');
       repositoryElement.className = 'repository';
 
@@ -71,10 +69,14 @@ function renderRepositories(repositories) {
       repositoryDescription.textContent = repository.description;
       repositoryElement.appendChild(repositoryDescription);
 
-      const repositoryLink = document.createElement('button');
-      repositoryLink.href = repository.homepage;
-      repositoryLink.textContent = 'Go to Homepage';
-      repositoryElement.appendChild(repositoryLink);
+      if (repository.homepage) {
+        const repositoryLink = document.createElement('button');
+        repositoryLink.textContent = 'Go to Homepage';
+        repositoryLink.addEventListener('click', () => {
+          window.location.href = repository.homepage;
+        });
+        repositoryElement.appendChild(repositoryLink);
+      }
 
       repositoriesContainer.appendChild(repositoryElement);
     });
