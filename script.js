@@ -1,5 +1,5 @@
 getOrFetch('https://api.github.com/users/lucasliet', renderUserPhoto);
-getOrFetch('https://api.github.com/users/lucasliet/repos', renderRepositories);
+getOrFetch('https://api.github.com/users/lucasliet/repos?sort=updated&per_page=100', renderRepositories);
 
 function getOrFetch(url, renderFunction) {
   const cachedData = JSON.parse(sessionStorage.getItem(url));
