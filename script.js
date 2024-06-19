@@ -62,7 +62,8 @@ function renderRepositories(repositories) {
       const repositoryElement = document.createElement('div');
       repositoryElement.className = 'repository';
 
-      const repositoryName = document.createElement('h3');
+      const repositoryName = document.createElement('a');
+      repositoryName.href = repository.html_url;
       repositoryName.textContent = repository.name;
       repositoryElement.appendChild(repositoryName);
 
@@ -70,7 +71,7 @@ function renderRepositories(repositories) {
       repositoryDescription.textContent = repository.description;
       repositoryElement.appendChild(repositoryDescription);
 
-      const repositoryLink = document.createElement('a');
+      const repositoryLink = document.createElement('button');
       repositoryLink.href = repository.homepage;
       repositoryLink.textContent = 'Go to Homepage';
       repositoryElement.appendChild(repositoryLink);
