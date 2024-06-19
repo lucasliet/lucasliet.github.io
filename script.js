@@ -60,10 +60,18 @@ function renderRepositories(repositories) {
       const repositoryElement = document.createElement('div');
       repositoryElement.className = 'repository';
 
+      const titleAndLanguage = document.createElement('div');
+      titleAndLanguage.className = 'title';
       const repositoryName = document.createElement('a');
       repositoryName.href = repository.html_url;
       repositoryName.textContent = repository.name;
-      repositoryElement.appendChild(repositoryName);
+      titleAndLanguage.appendChild(repositoryName);
+
+      const langageBadge = document.createElement('span');
+      langageBadge.textContent = repository.language;
+      titleAndLanguage.appendChild(langageBadge);
+
+      repositoryElement.appendChild(titleAndLanguage);
 
       const repositoryDescription = document.createElement('p');
       repositoryDescription.textContent = repository.description;

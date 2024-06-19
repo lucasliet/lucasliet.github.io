@@ -93,3 +93,19 @@ main {
   filter: brightness(1.5);
   transition: all 0.3s ease;
 }
+
+.repository span {
+  font-size: 14px;
+  color: whitesmoke;
+  background-color: rgba(5, 57, 101, 0.484);
+  padding: 2px 5px;
+  margin-top: .5rem;
+  border-radius: 4px;
+  align-self: flex-end;
+}
+
+.repository .title {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
