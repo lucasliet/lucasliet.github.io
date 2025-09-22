@@ -1,0 +1,56 @@
+# Node
+node_modules/
+
+# Vite / build output
+dist/
+build/
+.vite/
+
+# Local env files
+.env
+.env.*.local
+.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# Testing / coverage
+coverage/
+coverage-final.json
+.vitest/
+nyc_output/
+jest.cache
+
+# Caches
+.cache/
+.parcel-cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Misc
+*.tgz
+*.log
+*.pem
+*.key
+*.crt
+
+# Mac swap / Vim swap files
+*~
+*.swp
+
+# Optional: lockfiles for other package managers (uncomment if you use them)
+# pnpm-lock.yaml
+# yarn.lock
