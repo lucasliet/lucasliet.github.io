@@ -1,20 +1,192 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="pt-BR" data-color-scheme="dark">
 <head>
-  <title>Lucasliet's Repositories</title>
-  <link rel="stylesheet" href="style.css">
-  <script defer src="script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucas Oliveira - FullStack Developer</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-
 <body>
-  <header>
-    <div id="title"></div>
-    <input type="text" id="searchbox" placeholder="Search repository">
-  </header>
-  <main>
-    <section id="repositories"></section>
-  </main>
-</body>
+    <div class="dark-background"></div>
 
+    <main class="container">
+        <section class="hero" id="hero">
+            <div class="hero-content">
+                <div class="hero-card dark-card">
+                    <div class="profile-image">
+                        <img id="profileAvatar" 
+                             alt="Profile Picture" 
+                             class="profile-avatar"
+                             loading="eager">
+                        <div class="avatar-loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                    <h1 class="hero-name" id="heroName">Carregando...</h1>
+                    <div class="typing-container">
+                        <span class="typing-text" id="typingText">Carregando...</span>
+                        <span class="cursor">|</span>
+                    </div>
+                    <p class="hero-bio" id="heroBio">🎯 Carregando informações...</p>
+                    <div class="hero-location" id="heroLocation">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Carregando...</span>
+                    </div>
+                    <div class="hero-actions" id="heroActions">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-section" id="stats">
+            <div class="stats-grid">
+                <div class="stat-card dark-card" data-animate="counter">
+                    <div class="stat-icon">
+                        <i class="fas fa-code-branch"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-number" data-target="0">0</h3>
+                        <p class="stat-label">Repositórios</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card dark-card" data-animate="counter">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-number" data-target="0">0</h3>
+                        <p class="stat-label">Stars</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card dark-card" data-animate="counter">
+                    <div class="stat-icon">
+                        <i class="fas fa-code-branch"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-number" data-target="0">0</h3>
+                        <p class="stat-label">Forks</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card dark-card" data-animate="counter">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 class="stat-number" data-target="0">0</h3>
+                        <p class="stat-label">Followers</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="languages-section dark-card">
+                <h3 class="section-title">Tecnologias Mais Usadas</h3>
+                <div class="languages-grid" id="languagesGrid">
+                </div>
+            </div>
+        </section>
+
+        <section class="projects-section" id="projects">
+            <div class="projects-header">
+                <h2 class="section-title">Projetos <span id="projectCount" class="project-count">(0)</span></h2>
+                <div class="project-controls">
+                    <div class="search-container">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input 
+                                type="text" 
+                                id="searchInput" 
+                                class="form-control search-input" 
+                                placeholder="Buscar projetos...">
+                            <button id="clearSearchBtn" class="clear-search-btn" style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="filters-container">
+                        <select class="form-control dark-select" id="languageSelect">
+                            <option value="all">Todas as linguagens</option>
+                        </select>
+                        <select class="form-control dark-select" id="sortSelect">
+                            <option value="updated">Mais Recentes</option>
+                            <option value="stars">Mais Estrelas</option>
+                            <option value="name">Nome</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="projects-grid" id="projectsGrid">
+            </div>
+            
+            <div class="load-more-container" id="loadMoreContainer">
+                <button class="btn btn--outline" id="loadMoreBtn">
+                    <span>Carregar Mais Projetos</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+        </section>
+
+        <section class="about-section dark-card" id="about">
+            <h2 class="section-title">Sobre Mim</h2>
+            <div class="about-content">
+                <div class="about-text-container">
+                    <div class="greeting">
+                        <h3 id="aboutGreeting">Olá! 👋</h3>
+                    </div>
+                    
+                    <p class="about-text" id="aboutText">
+                        Bem-vindo ao meu perfil do GitHub! Aqui você encontrará os projetos que refletem minha paixão por tecnologia, inovação e desenvolvimento contínuo. Acredito na força do código limpo, nas melhores práticas de segurança e na colaboração para criar soluções impactantes.
+                    </p>
+                    
+                    <div class="about-section-block">
+                        <h4>🚀 Sobre mim</h4>
+                        <p>
+                            Sou um entusiasta de tecnologia focado em aprender e compartilhar conhecimento. Meu objetivo é transformar ideias em aplicações funcionais e eficientes, sempre buscando aprimorar minhas habilidades e contribuir para a comunidade.
+                        </p>
+                    </div>
+                    
+                    <div class="about-section-block">
+                        <h4>💡 O que você vai encontrar aqui</h4>
+                        <ul class="about-list">
+                            <li>Repositórios com soluções inovadoras</li>
+                            <li>Projetos open-source que demonstram minha experiência técnica</li>
+                            <li>Exemplos práticos de boas práticas de programação</li>
+                            <li>Iniciativas colaborativas e experimentos criativos</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="about-section-block">
+                        <h4>🌱 Aprendizado contínuo</h4>
+                        <p>
+                            Estou sempre explorando novas tecnologias, frameworks e metodologias para me manter atualizado e entregar o melhor resultado possível. A tecnologia evolui rapidamente, e eu evoluo junto com ela.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="contact-section dark-card" id="contact">
+            <h2 class="section-title">Vamos Conectar</h2>
+            <p class="contact-description">
+                Estou sempre aberto para conversar sobre projetos interessantes, oportunidades de colaboração ou simplesmente trocar ideias sobre tecnologia.
+            </p>
+            <div class="social-links" id="socialLinks">
+            </div>
+        </section>
+    </main>
+
+    <div class="loading-overlay dark-loading" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Carregando portfólio...</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
 </html>
