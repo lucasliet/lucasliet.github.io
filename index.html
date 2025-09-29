@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lucas Oliveira - FullStack Developer</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%230f172a'/><stop offset='1' stop-color='%231e293b'/></linearGradient><filter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'><feDropShadow dx='0' dy='0' stdDeviation='0.8' flood-color='%233b82f6' flood-opacity='0.6'/></filter></defs><style>:root { color-scheme: light dark; }.bg { fill: url(%23g); }.mark { fill: none; stroke: %2360a5fa; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; filter: url(%23glow); }@media (prefers-color-scheme: light) {.bg { fill: %23ffffff; }.mark { stroke: %231f2937; filter: none; }}</style><rect class='bg' x='1' y='1' width='30' height='30' rx='7' ry='7'/><path class='mark' d='M12 10 L8 16 L12 22'/><path class='mark' d='M16 10 L12 22'/><path class='mark' d='M20 10 L24 16 L20 22'/></svg>" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css?v=3.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -116,6 +117,10 @@
                             <option value="stars">Mais Estrelas</option>
                             <option value="name">Nome</option>
                         </select>
+                        <button class="btn btn--secondary" id="refreshBtn" title="Atualizar dados da API do GitHub">
+                            <i class="fas fa-sync-alt"></i>
+                            <span>Atualizar</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -185,6 +190,10 @@
             <div class="loading-spinner"></div>
             <p>Carregando portfólio...</p>
         </div>
+    </div>
+
+    <div class="scroll-indicator" id="scrollIndicator">
+        <i class="fas fa-chevron-down"></i>
     </div>
 
     <script src="app.js"></script>

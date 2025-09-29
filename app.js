@@ -56,7 +56,10 @@ class PortfolioApp {
         
         /** @type {number} Maximum retry attempts for API calls */
         this.maxRetries = 3;
-        
+
+        /** @type {string} Cache key for sessionStorage */
+        this.cacheKey = `github_portfolio_${this.githubUsername}`;
+
         this.init();
     }
 
@@ -69,7 +72,6 @@ class PortfolioApp {
      * @throws {Error} When GitHub API calls fail or user not found
      */
     async init() {
-        console.log('Starting portfolio initialization...');
         
         try {
             this.showLoadingMessage('Conectando com GitHub API...');
@@ -78,10 +80,13 @@ class PortfolioApp {
             
             this.showLoadingMessage('Configurando perfil...');
             this.populateUserProfile();
-            
+
             this.showLoadingMessage('Calculando estatísticas...');
             this.populateStatistics();
-            
+
+            this.showLoadingMessage('Carregando sobre mim...');
+            await this.populateAboutSection();
+
             this.showLoadingMessage('Inicializando componentes...');
             this.initializeComponents();
             this.setupEventListeners();
@@ -107,21 +112,188 @@ class PortfolioApp {
             }
         }
         
-        console.log('Portfolio initialization completed successfully');
     }
 
     /**
-     * Load portfolio data from GitHub API
+     * Get data from sessionStorage cache
+     * @method getCachedData
+     * @returns {Object|null} Cached data or null if not found
+     */
+    getCachedData() {
+        try {
+            const cached = sessionStorage.getItem(this.cacheKey);
+            return cached ? JSON.parse(cached) : null;
+        } catch (error) {
+            console.warn('Error reading from cache:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Save data to sessionStorage cache
+     * @method setCachedData
+     * @param {Object} data - Data to cache
+     * @returns {void}
+     */
+    setCachedData(data) {
+        try {
+            sessionStorage.setItem(this.cacheKey, JSON.stringify(data));
+        } catch (error) {
+            console.warn('Error saving to cache:', error);
+        }
+    }
+
+    /**
+     * Clear cached data and refresh from API
+     * @method refreshData
+     * @returns {Promise<void>}
+     */
+    async refreshData() {
+        try {
+            sessionStorage.removeItem(this.cacheKey);
+            this.showLoadingMessage('Atualizando dados...');
+            await this.loadPortfolioData();
+            this.populateUserProfile();
+            this.populateStatistics();
+            await this.populateAboutSection();
+            this.initializeComponents();
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        }
+    }
+
+    /**
+     * Fetch README.md content from GitHub profile repository
+     * @async
+     * @method fetchReadmeContent
+     * @returns {Promise<string>} README content or fallback text
+     */
+    async fetchReadmeContent() {
+        try {
+            const response = await this.fetchWithRetry(
+                `https://raw.githubusercontent.com/${this.githubUsername}/${this.githubUsername}/refs/heads/main/README.md`
+            );
+
+            if (response.ok) {
+                const content = await response.text();
+                return content;
+            }
+        } catch (error) {
+            console.warn('Error fetching README:', error);
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse README markdown and extract about section content
+     * @method parseReadmeContent
+     * @param {string} markdown - Raw markdown content
+     * @returns {Object} Parsed content sections
+     */
+    parseReadmeContent(markdown) {
+        if (!markdown) return this.getDefaultAboutContent();
+
+        const lines = markdown.split('\n');
+        const content = { greeting: '', intro: '', sections: [] };
+        const skipSections = ['estatísticas do github', 'github stats', 'stats', 'contato', 'contact', 'redes sociais', 'social media'];
+
+        let currentSection = null;
+        let collectingContent = false;
+
+        for (let line of lines) {
+            line = line.trim();
+
+            if (!line || line.match(/^(!\[|http|<|```)/)) continue;
+
+            if (line.match(/^[-=]{3,}$/)) {
+                currentSection?.content.push('<hr>');
+                continue;
+            }
+
+            if (line.match(/^#{1,3}\s+/)) {
+                if (currentSection) content.sections.push(currentSection);
+
+                const title = line.replace(/^#{1,3}\s+/, '').trim();
+
+                if (skipSections.some(skip => title.toLowerCase().includes(skip))) {
+                    currentSection = null;
+                    collectingContent = false;
+                    continue;
+                }
+
+                currentSection = { title, content: [] };
+                collectingContent = true;
+            } else if ((line.startsWith('-') || line.startsWith('*')) && currentSection) {
+                currentSection.content.push(line.replace(/^[-*]\s+/, ''));
+            } else if (line.length > 0 && collectingContent && !line.startsWith('#')) {
+                if (currentSection && line.length > 10) {
+                    currentSection.content.push(line);
+                }
+            }
+        }
+
+        if (currentSection) content.sections.push(currentSection);
+
+        if (!content.greeting && !content.intro && content.sections.length === 0) {
+            return this.getDefaultAboutContent();
+        }
+
+        return content;
+    }
+
+    /**
+     * Get default about content as fallback
+     * @method getDefaultAboutContent
+     * @returns {Object} Default content structure
+     */
+    getDefaultAboutContent() {
+        return {
+            greeting: 'Olá! 👋',
+            intro: 'Bem-vindo ao meu perfil do GitHub! Aqui você encontrará os projetos que refletem minha paixão por tecnologia, inovação e desenvolvimento contínuo.',
+            sections: [
+                {
+                    title: 'Sobre mim',
+                    content: ['Sou um entusiasta de tecnologia focado em aprender e compartilhar conhecimento. Meu objetivo é transformar ideias em aplicações funcionais e eficientes.']
+                },
+                {
+                    title: 'O que você vai encontrar aqui',
+                    content: [
+                        'Repositórios com soluções inovadoras',
+                        'Projetos open-source que demonstram experiência técnica',
+                        'Exemplos práticos de boas práticas de programação',
+                        'Iniciativas colaborativas e experimentos criativos'
+                    ]
+                },
+                {
+                    title: 'Aprendizado contínuo',
+                    content: ['Estou sempre explorando novas tecnologias, frameworks e metodologias para me manter atualizado e entregar o melhor resultado possível.']
+                }
+            ]
+        };
+    }
+
+    /**
+     * Load portfolio data from GitHub API with cache support
      * @async
      * @method loadPortfolioData
-     * @description Fetches user profile and repositories from GitHub API in parallel
+     * @description Fetches user profile and repositories from GitHub API in parallel, with localStorage cache
      * @returns {Promise<void>}
      * @throws {Error} When API requests fail or return non-OK status
      */
     async loadPortfolioData() {
-        console.log('Loading portfolio data from GitHub API...');
         this.isLoading = true;
-        
+
+        const cachedData = this.getCachedData();
+        if (cachedData) {
+            this.portfolioData = cachedData;
+            this.allProjects = this.portfolioData.repositories;
+            this.filteredProjects = [...this.allProjects];
+            this.isLoading = false;
+            return;
+        }
+
+
         try {
             const [userResponse, reposResponse] = await Promise.all([
                 this.fetchWithRetry(`${this.githubAPIBase}/users/${this.githubUsername}`),
@@ -138,8 +310,9 @@ class PortfolioApp {
             this.portfolioData = this.processGitHubData(userData, reposData);
             this.allProjects = this.portfolioData.repositories;
             this.filteredProjects = [...this.allProjects];
-            
-            console.log(`Portfolio loaded with ${this.allProjects.length} repositories from GitHub API`);
+
+            this.setCachedData(this.portfolioData);
+
             
         } catch (error) {
             console.error('Error loading from GitHub API:', error);
@@ -164,7 +337,6 @@ class PortfolioApp {
         
         for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
             try {
-                console.log(`Attempting to fetch ${url} (attempt ${attempt}/${this.maxRetries})`);
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -313,7 +485,6 @@ class PortfolioApp {
      * @returns {void}
      */
     loadFallbackData() {
-        console.log('Loading fallback data...');
         
         this.portfolioData = {
             user: {
@@ -382,10 +553,6 @@ class PortfolioApp {
             }
         }
         
-        const aboutGreeting = document.getElementById('aboutGreeting');
-        if (aboutGreeting) {
-            aboutGreeting.textContent = `Olá, eu sou ${user.name || user.username}! 👋`;
-        }
         
         this.populateHeroActions();
         
@@ -395,17 +562,17 @@ class PortfolioApp {
     /**
      * Populate hero action buttons
      * @method populateHeroActions
-     * @description Creates GitHub and website links for hero section
+     * @description Creates GitHub and LinkedIn links for hero section
      * @returns {void}
      */
     populateHeroActions() {
         const heroActions = document.getElementById('heroActions');
         const user = this.portfolioData.user;
-        
+
         if (!heroActions) return;
-        
+
         let actionsHTML = '';
-        
+
         if (user.html_url) {
             actionsHTML += `
                 <a href="${user.html_url}" target="_blank" class="btn btn--primary">
@@ -414,17 +581,17 @@ class PortfolioApp {
                 </a>
             `;
         }
-        
-        if (user.blog) {
-            const blogUrl = user.blog.startsWith('http') ? user.blog : `https://${user.blog}`;
+
+        const linkedinUrl = this.socialLinks.linkedin || this.extractLinkedInFromBio(user.bio);
+        if (linkedinUrl) {
             actionsHTML += `
-                <a href="${blogUrl}" target="_blank" class="btn btn--outline">
-                    <i class="fas fa-globe"></i>
-                    <span>Website</span>
+                <a href="${linkedinUrl}" target="_blank" class="btn btn--outline">
+                    <i class="fab fa-linkedin"></i>
+                    <span>LinkedIn</span>
                 </a>
             `;
         }
-        
+
         heroActions.innerHTML = actionsHTML;
     }
 
@@ -437,11 +604,11 @@ class PortfolioApp {
     populateSocialLinks() {
         const socialLinks = document.getElementById('socialLinks');
         const user = this.portfolioData.user;
-        
+
         if (!socialLinks) return;
-        
+
         let linksHTML = '';
-        
+
         if (user.html_url) {
             linksHTML += `
                 <a href="${user.html_url}" target="_blank" class="social-link dark-social">
@@ -450,7 +617,7 @@ class PortfolioApp {
                 </a>
             `;
         }
-        
+
         const linkedinUrl = this.socialLinks.linkedin || this.extractLinkedInFromBio(user.bio);
         if (linkedinUrl) {
             linksHTML += `
@@ -460,31 +627,7 @@ class PortfolioApp {
                 </a>
             `;
         }
-        
-        const twitterUsername = user.twitter_username || this.socialLinks.twitter;
-        if (twitterUsername) {
-            const twitterUrl = twitterUsername.startsWith('http') 
-                ? twitterUsername 
-                : `https://twitter.com/${twitterUsername.replace('@', '')}`;
-            linksHTML += `
-                <a href="${twitterUrl}" target="_blank" class="social-link dark-social">
-                    <i class="fab fa-twitter"></i>
-                    <span>Twitter</span>
-                </a>
-            `;
-        }
-        
-        const websiteUrl = user.blog || this.socialLinks.website;
-        if (websiteUrl) {
-            const url = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`;
-            linksHTML += `
-                <a href="${url}" target="_blank" class="social-link dark-social">
-                    <i class="fas fa-globe"></i>
-                    <span>Website</span>
-                </a>
-            `;
-        }
-        
+
         const email = user.email || this.socialLinks.email;
         if (email) {
             linksHTML += `
@@ -494,8 +637,93 @@ class PortfolioApp {
                 </a>
             `;
         }
-        
+
         socialLinks.innerHTML = linksHTML;
+    }
+
+    /**
+     * Populate about section with content from README.md
+     * @async
+     * @method populateAboutSection
+     * @returns {Promise<void>}
+     */
+    async populateAboutSection() {
+        try {
+            const readmeContent = await this.fetchReadmeContent();
+            const parsedContent = this.parseReadmeContent(readmeContent);
+
+            const aboutGreeting = document.getElementById('aboutGreeting');
+            const aboutText = document.getElementById('aboutText');
+            const aboutTextContainer = document.querySelector('.about-text-container');
+
+            if (aboutGreeting) {
+                aboutGreeting.textContent = parsedContent.greeting;
+            }
+
+            if (aboutText) {
+                aboutText.textContent = parsedContent.intro;
+            }
+
+            if (aboutTextContainer) {
+                const existingBlocks = aboutTextContainer.querySelectorAll('.about-section-block');
+                existingBlocks.forEach(block => block.remove());
+
+                parsedContent.sections.forEach((section) => {
+                    const blockElement = document.createElement('div');
+                    blockElement.className = 'about-section-block';
+
+                    const title = document.createElement('h4');
+                    title.textContent = section.title;
+                    blockElement.appendChild(title);
+
+                    // Check if content has multiple distinct items (suggesting a list)
+                    const nonHrContent = section.content.filter(item => item !== '<hr>' && item.length > 0);
+                    const shouldBeList = nonHrContent.length > 1 && nonHrContent.every(item => item.length < 150 && !item.includes('.'));
+
+                    if (shouldBeList) {
+                        // Render as list with HR support
+                        const container = document.createElement('div');
+                        let currentList = null;
+
+                        section.content.forEach(item => {
+                            if (item === '<hr>') {
+                                const hr = document.createElement('hr');
+                                container.appendChild(hr);
+                                currentList = null; // Break list continuity
+                            } else if (item.length > 0) {
+                                if (!currentList) {
+                                    currentList = document.createElement('ul');
+                                    currentList.className = 'about-list';
+                                    container.appendChild(currentList);
+                                }
+                                const listItem = document.createElement('li');
+                                listItem.textContent = item;
+                                currentList.appendChild(listItem);
+                            }
+                        });
+
+                        blockElement.appendChild(container);
+                    } else {
+                        // Render as paragraphs with HR support
+                        section.content.forEach(item => {
+                            if (item === '<hr>') {
+                                const hr = document.createElement('hr');
+                                blockElement.appendChild(hr);
+                            } else if (item.length > 0) {
+                                const paragraph = document.createElement('p');
+                                paragraph.textContent = item;
+                                blockElement.appendChild(paragraph);
+                            }
+                        });
+                    }
+
+                    aboutTextContainer.appendChild(blockElement);
+                });
+            }
+
+        } catch (error) {
+            console.warn('Error populating about section:', error);
+        }
     }
 
     /**
@@ -598,7 +826,6 @@ class PortfolioApp {
      * @returns {void}
      */
     initializeComponents() {
-        console.log('Initializing components...');
         this.initTypingEffect();
         this.initCounterAnimations();
         this.renderLanguages();
@@ -628,7 +855,6 @@ class PortfolioApp {
             languageSelect.appendChild(option);
         });
 
-        console.log('Language filter populated');
     }
 
     /**
@@ -638,7 +864,6 @@ class PortfolioApp {
      * @returns {void}
      */
     setupEventListeners() {
-        console.log('Setting up event listeners...');
         
         const searchInput = document.getElementById('searchInput');
         const clearSearchBtn = document.getElementById('clearSearchBtn');
@@ -682,12 +907,30 @@ class PortfolioApp {
             });
         }
 
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', async () => {
+                const icon = refreshBtn.querySelector('i');
+                icon.classList.add('fa-spin');
+                refreshBtn.disabled = true;
+
+                try {
+                    await this.refreshData();
+                } finally {
+                    icon.classList.remove('fa-spin');
+                    refreshBtn.disabled = false;
+                }
+            });
+        }
+
         document.addEventListener('click', (e) => {
             const projectCard = e.target.closest('.project-card');
             if (projectCard && projectCard.dataset.url) {
                 window.open(projectCard.dataset.url, '_blank');
             }
         });
+
+        this.setupScrollIndicator();
     }
 
     /**
@@ -721,6 +964,53 @@ class PortfolioApp {
     }
 
     /**
+     * Setup scroll indicator functionality
+     * @method setupScrollIndicator
+     * @description Configures scroll indicator visibility and smooth scrolling
+     * @returns {void}
+     */
+    setupScrollIndicator() {
+        const scrollIndicator = document.getElementById('scrollIndicator');
+
+        if (!scrollIndicator) return;
+
+        scrollIndicator.addEventListener('click', () => {
+            const statsSection = document.getElementById('stats');
+            if (statsSection) {
+                statsSection.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+
+        window.addEventListener('scroll', this.handleScrollIndicatorVisibility.bind(this));
+
+        this.handleScrollIndicatorVisibility();
+    }
+
+    /**
+     * Handle scroll indicator visibility based on scroll position
+     * @method handleScrollIndicatorVisibility
+     * @description Shows indicator when at top, hides when scrolled down
+     * @returns {void}
+     */
+    handleScrollIndicatorVisibility() {
+        const scrollIndicator = document.getElementById('scrollIndicator');
+
+        if (!scrollIndicator) return;
+
+        const scrollThreshold = 100;
+        const isNearTop = window.scrollY < scrollThreshold;
+
+        if (isNearTop) {
+            scrollIndicator.classList.remove('hidden');
+        } else {
+            scrollIndicator.classList.add('hidden');
+        }
+    }
+
+    /**
      * Apply current search and language filters
      * @method applyFilters
      * @description Filters projects based on search query and language selection
@@ -743,7 +1033,6 @@ class PortfolioApp {
         this.loadMoreProjects();
         this.updateProjectCount();
         
-        console.log(`Filtered to ${this.filteredProjects.length} projects`);
     }
 
     /**
@@ -753,7 +1042,6 @@ class PortfolioApp {
      * @returns {void}
      */
     loadInitialProjects() {
-        console.log('Loading initial projects...');
         this.currentPage = 0;
         this.displayedProjects = [];
         this.loadMoreProjects();
@@ -777,7 +1065,6 @@ class PortfolioApp {
         this.renderProjects();
         this.updateLoadMoreButton();
         
-        console.log(`Displaying ${this.displayedProjects.length} of ${this.filteredProjects.length} projects`);
     }
 
     /**
@@ -830,11 +1117,17 @@ class PortfolioApp {
         const languageColor = this.getLanguageColor(project.language);
         const updatedDate = project.updated_at ? new Date(project.updated_at).toLocaleDateString('pt-BR') : 'N/A';
         const projectName = project.name || 'Unnamed Project';
-        
+        const homepageUrl = project.homepage?.startsWith('http') ? project.homepage : `https://${project.homepage}`;
+
+        const renderTopics = () => {
+            if (!project.topics?.length) return '';
+            const visibleTopics = project.topics.slice(0, 5).map(topic => `<span class="topic-tag">${topic}</span>`).join('');
+            const extraCount = project.topics.length > 5 ? `<span class="topic-tag more-topics">+${project.topics.length - 5}</span>` : '';
+            return `<div class="project-topics">${visibleTopics}${extraCount}</div>`;
+        };
+
         return `
-            <div class="project-card" 
-                 data-url="${project.html_url}"
-                 data-language="${(project.language || '').toLowerCase()}">
+            <div class="project-card" data-url="${project.html_url}" data-language="${(project.language || '').toLowerCase()}">
                 <div class="project-header">
                     <h3 class="project-name">${projectName}</h3>
                     <div class="project-stats">
@@ -842,19 +1135,14 @@ class PortfolioApp {
                         <span><i class="fas fa-code-branch"></i> ${project.forks || 0}</span>
                     </div>
                 </div>
-                
-                <p class="project-description">
-                    ${project.description || 'No description available'}
-                </p>
-                
+                <p class="project-description">${project.description || 'No description available'}</p>
+                ${renderTopics()}
                 <div class="project-meta">
-                    ${project.language ? `
-                        <div class="language-badge">
-                            <span class="language-dot" style="background-color: ${languageColor}"></span>
-                            ${project.language}
-                        </div>
-                    ` : ''}
-                    <span class="project-date">Atualizado em ${updatedDate}</span>
+                    <div class="project-info">
+                        ${project.language ? `<div class="language-badge"><span class="language-dot" style="background-color: ${languageColor}"></span>${project.language}</div>` : ''}
+                        <span class="project-date">Atualizado em ${updatedDate}</span>
+                    </div>
+                    ${project.homepage ? `<div class="project-actions"><a href="${homepageUrl}" target="_blank" class="homepage-btn" onclick="event.stopPropagation()"><i class="fas fa-external-link-alt"></i><span>Website</span></a></div>` : ''}
                 </div>
             </div>
         `;
@@ -1119,13 +1407,11 @@ class PortfolioApp {
      * @returns {void}
      */
     hideLoadingOverlay() {
-        console.log('Hiding loading overlay...');
         const loadingOverlay = document.getElementById('loadingOverlay');
         if (loadingOverlay) {
             loadingOverlay.style.opacity = '0';
             setTimeout(() => {
                 loadingOverlay.classList.add('hidden');
-                console.log('Loading overlay hidden successfully');
             }, 300);
         }
     }
@@ -1137,7 +1423,6 @@ class PortfolioApp {
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM loaded, initializing Portfolio App...');
     try {
         new PortfolioApp();
     } catch (error) {
@@ -1156,7 +1441,6 @@ document.addEventListener('DOMContentLoaded', () => {
 setTimeout(() => {
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
-        console.log('Force hiding loading overlay after timeout');
         loadingOverlay.classList.add('hidden');
     }
 }, 3000);
@@ -1166,4 +1450,3 @@ setTimeout(() => {
  * @description Configure the application to use dark theme
  */
 document.documentElement.setAttribute('data-color-scheme', 'dark');
-console.log('Portfolio app loaded with dark theme');
