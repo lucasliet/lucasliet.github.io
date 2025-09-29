@@ -1018,13 +1018,15 @@ class PortfolioApp {
      */
     applyFilters() {
         this.filteredProjects = this.allProjects.filter(project => {
-            const matchesSearch = !this.currentSearchQuery || 
-                project.name.toLowerCase().includes(this.currentSearchQuery.toLowerCase()) ||
-                (project.description && project.description.toLowerCase().includes(this.currentSearchQuery.toLowerCase()));
-            
-            const matchesLanguage = this.currentLanguageFilter === 'all' || 
+            const searchLower = this.currentSearchQuery.toLowerCase();
+            const matchesSearch = !this.currentSearchQuery ||
+                project.name.toLowerCase().includes(searchLower) ||
+                (project.description && project.description.toLowerCase().includes(searchLower)) ||
+                (project.topics && project.topics.some(topic => topic.toLowerCase().includes(searchLower)));
+
+            const matchesLanguage = this.currentLanguageFilter === 'all' ||
                 (project.language && project.language === this.currentLanguageFilter);
-            
+
             return matchesSearch && matchesLanguage;
         });
 
